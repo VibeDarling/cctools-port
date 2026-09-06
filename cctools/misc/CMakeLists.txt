@@ -1,6 +1,6 @@
 project(misc)
 
-if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64")
+if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64|arm64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64" OR TARGET_ARM64)
     add_compile_definitions(__arm64__)
 endif()
 
@@ -14,7 +14,6 @@ add_definitions(-DHAVE_BCMP=1  -DHAVE_BCOPY=1  )
 add_definitions(-U__APPLE__
 	-D__STDC_LIMIT_MACROS=1
 	-D__STDC_CONSTANT_MACROS=1
-	-DHAVE_EXECINFO_H=1
 	-D__DARWIN_UNIX03
 	-U__APPLE__
 	-U_DARWIN_C_SOURCE
