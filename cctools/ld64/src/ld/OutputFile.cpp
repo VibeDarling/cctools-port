@@ -1430,7 +1430,9 @@ void OutputFile::applyFixUps(ld::Internal& state, uint64_t mhAddress, const ld::
 				break;
 			case ld::Fixup::kindStoreLittleEndian32:
 				rangeCheckAbsolute32(accumulator, state, atom, fit);
-				if ( _options.makeChainedFixups() && !fit->contentAddendOnly && (atom->contentType() != ld::Atom::ContentType::typeCFI)
+				// DARLING: 64-bit chained formats have no 32-bit fixups; 32-bit stores there are resolved values
+				// such as Swift's relative pointers (SUBTRACTOR/UNSIGNED pairs), so write them directly.
+				if ( _options.makeChainedFixups() && !(_options.architecture() & CPU_ARCH_ABI64) && !fit->contentAddendOnly && (atom->contentType() != ld::Atom::ContentType::typeCFI)
 				 	&& (atom->section().type() != ld::Section::typeUnwindInfo) && (atom->section().type() != ld::Section::typeCode)
 				 	&& (atom->section().type() != ld::Section::typeDtraceDOF)  )
 					setFixup32(fixUpLocation, accumulator, toTarget);
@@ -1655,7 +1657,7 @@ void OutputFile::applyFixUps(ld::Internal& state, uint64_t mhAddress, const ld::
 				if ( fit->contentAddendOnly )
 					accumulator = 0;
 				rangeCheckAbsolute32(accumulator, state, atom, fit);
-				if ( _options.makeChainedFixups() && !fit->contentAddendOnly )
+				if ( _options.makeChainedFixups() && !(_options.architecture() & CPU_ARCH_ABI64) && !fit->contentAddendOnly )
 					setFixup32(fixUpLocation, accumulator, toTarget);
 				else
 					set32LE(fixUpLocation, accumulator);
