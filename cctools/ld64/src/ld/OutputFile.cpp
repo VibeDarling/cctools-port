@@ -1362,12 +1362,15 @@ void OutputFile::applyFixUps(ld::Internal& state, uint64_t mhAddress, const ld::
 	bool is_blx;
 	bool is_b;
 	bool thumbTarget = false;
+	bool isRelative = false;
 	std::map<uint32_t, const Fixup*> usedByHints;
 #if SUPPORT_ARCH_arm64e
 	Fixup::AuthData authData;
 #endif
 	for (ld::Fixup::iterator fit = atom->fixupsBegin(), end=atom->fixupsEnd(); fit != end; ++fit) {
 		uint8_t* fixUpLocation = &buffer[fit->offsetInAtom];
+		if ( fit->firstInCluster() )
+			isRelative = false;
 		ld::Fixup::LOH_arm64 lohExtra;
 		switch ( (ld::Fixup::Kind)(fit->kind) ) { 
 			case ld::Fixup::kindNone:
@@ -1389,6 +1392,7 @@ void OutputFile::applyFixUps(ld::Internal& state, uint64_t mhAddress, const ld::
 				delta = addressOf(state, fit, &fromTarget);
 				if ( ! fit->contentAddendOnly )
 					accumulator -= delta;
+				isRelative = true;
 				break;
 			case ld::Fixup::kindAddAddend:
 				if ( ! fit->contentIgnoresAddend ) {
@@ -1412,6 +1416,7 @@ void OutputFile::applyFixUps(ld::Internal& state, uint64_t mhAddress, const ld::
 				thumbTarget = targetIsThumb(state, fit);
 				if ( thumbTarget ) 
 					accumulator |= 1;
+				isRelative = true;
 				break;
 			case ld::Fixup::kindSetTargetSectionOffset:
 				accumulator = sectionOffsetOf(state, fit);
@@ -1430,9 +1435,12 @@ void OutputFile::applyFixUps(ld::Internal& state, uint64_t mhAddress, const ld::
 				break;
 			case ld::Fixup::kindStoreLittleEndian32:
 				rangeCheckAbsolute32(accumulator, state, atom, fit);
+				// DARLING: as in newer ld64, a relative store (e.g. Swift's relative pointers, SUBTRACTOR/UNSIGNED
+				// pairs) is a resolved value, not a pointer, so it is written directly and never joins a fixup chain.
+				// An absolute 32-bit store still goes through setFixup32(), which rejects 64-bit chained formats.
 				if ( _options.makeChainedFixups() && !fit->contentAddendOnly && (atom->contentType() != ld::Atom::ContentType::typeCFI)
 				 	&& (atom->section().type() != ld::Section::typeUnwindInfo) && (atom->section().type() != ld::Section::typeCode)
-				 	&& (atom->section().type() != ld::Section::typeDtraceDOF)  )
+				 	&& (atom->section().type() != ld::Section::typeDtraceDOF) && !isRelative )
 					setFixup32(fixUpLocation, accumulator, toTarget);
 				else
 					set32LE(fixUpLocation, accumulator);
