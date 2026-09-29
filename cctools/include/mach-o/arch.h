@@ -143,6 +143,9 @@ extern cpu_subtype_t NXCombineCpuSubtypes(cpu_type_t cputype,
 					  cpu_subtype_t cpusubtype1,
 					  cpu_subtype_t cpusubtype2);
 
+extern const char *macho_arch_name_for_cpu_type(cpu_type_t cputype,
+						cpu_subtype_t cpusubtype);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
